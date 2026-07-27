@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一级建造师模拟答题系统</title>
+    <link rel="icon" href="/icon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css?v=20260727">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">📋</span>
+                    <h1>一级建造师模拟答题</h1>
+                </div>
+                <div class="header-stats" id="headerStats" style="display:none">
+                    <span class="stat-badge" id="progressBadge"></span>
+                </div>
+                <button class="btn-settings" onclick="openSettings()" title="API设置">
+                    ⚙️
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Page: Config -->
+            <section id="pageConfig" class="page active">
+                <div class="card welcome-card">
+                    <div class="welcome-icon">🎯</div>
+                    <h2>开始你的模拟考试</h2>
+                    <p class="welcome-sub">选择题库类别和题型，系统将从题库中随机抽取题目</p>
+                </div>
+
+                <div class="card config-card">
+                    <div class="config-section">
+                        <label class="config-label">📚 选择题库类别</label>
+                        <div class="category-grid" id="categoryGrid">
+                            <div class="loading-categories">加载题库中...</div>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <label class="config-label">📝 选择题型</label>
+                        <div class="type-checkboxes">
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="single" checked>
+                                <span class="checkmark"></span>
+                                <span class="checkbox-text">
+                                    <strong>单选题</strong>
+                                    <small>选择一个正确答案</small>
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="multi" checked>
+                                <span class="checkmark"></span>
+                                <span class="checkbox-text">
+                                    <strong>多选题</strong>
+                                    <small>选择多个正确答案</small>
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="judge" checked>
+                                <span class="checkmark"></span>
+                                <span class="checkbox-text">
+                                    <strong>判断题</strong>
+                                    <small>判断对错</small>
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="fill">
+                                <span class="checkmark"></span>
+                                <span class="checkbox-text">
+                                    <strong>填空题</strong>
+                                    <small>口算·填空</small>
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" value="case">
+                                <span class="checkmark"></span>
+                                <span class="checkbox-text">
+                                    <strong>案例分析/简答题</strong>
+                                    <small>AI智能评分</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <label class="config-label">🔢 题目数量</label>
+                        <div class="count-input">
+                            <button class="btn-count" onclick="adjustCount(-5)">−5</button>
+                            <input type="number" id="questionCount" value="20" min="1" max="100">
+                            <button class="btn-count" onclick="adjustCount(5)">+5</button>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <label class="config-label">⏱ 倒计时</label>
+                        <div class="countdown-row">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="countdownToggle" onchange="toggleCountdown()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span id="countdownLabel">关闭</span>
+                            <select id="countdownMinutes" class="countdown-select" disabled onchange="updateCountdownLabel()">
+                                <option value="15">15 分钟</option>
+                                <option value="30">30 分钟</option>
+                                <option value="45">45 分钟</option>
+                                <option value="60" selected>60 分钟</option>
+                                <option value="90">90 分钟</option>
+                                <option value="120">120 分钟</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" id="btnStart" onclick="startExam()">
+                        <span>开始答题</span>
+                        <span class="btn-arrow">→</span>
+                    </button>
+
+                    <div id="configError" class="error-message" style="display:none"></div>
+                </div>
+            </section>
+
+            <!-- Page: Exam -->
+            <section id="pageExam" class="page">
+                <div class="exam-header">
+                    <div class="exam-info">
+                        <span class="exam-category" id="examCategory"></span>
+                        <span class="exam-progress" id="examProgress"></span>
+                    </div>
+                    <div class="exam-timer" id="examTimer">
+                        <span id="timerIcon">⏱</span> <span id="timerDisplay">00:00</span>
+                    </div>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+
+                <div id="questionsContainer" class="questions-container"></div>
+
+                <div class="exam-footer">
+                    <button class="btn-secondary" id="btnPrev" onclick="prevQuestion()" style="display:none">
+                        ← 上一题
+                    </button>
+                    <button class="btn-secondary" id="btnNext" onclick="nextQuestion()">
+                        下一题 →
+                    </button>
+                    <button class="btn-primary btn-submit" id="btnSubmit" onclick="submitExam()" style="display:none">
+                        ✓ 提交答案
+                    </button>
+                    <button class="btn-ghost" id="btnDirect" onclick="directSubmit()">
+                        🏁 直接提交
+                    </button>
+                </div>
+            </section>
+
+            <!-- Page: Result -->
+            <section id="pageResult" class="page">
+                <div class="result-header">
+                    <div class="score-circle" id="scoreCircle">
+                        <!-- Score rendered as Canvas image for tamper-proof -->
+                    </div>
+                    <h2 id="resultTitle">考试结果</h2>
+                    <p class="result-summary" id="resultSummary"></p>
+                </div>
+
+                <div class="result-stats" id="resultStats"></div>
+
+                <div class="result-detail-header">
+                    <h3>📋 答题详情</h3>
+                    <button class="btn-secondary" onclick="backToConfig()">← 返回首页</button>
+                </div>
+
+                <div id="resultDetail" class="result-detail"></div>
+
+                <div class="result-footer">
+                    <button class="btn-primary" onclick="backToConfig()">再考一次</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay" style="display:none">
+            <div class="loading-spinner"></div>
+            <p id="loadingText">加载中...</p>
+        </div>
+
+        <!-- Settings Modal -->
+        <div class="modal-overlay" id="settingsModal" style="display:none">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>⚙️ API 设置</h3>
+                    <button class="btn-modal-close" onclick="closeSettings()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p class="modal-desc">配置 DeepSeek API 以启用案例分析/简答题的 AI 自动评分功能。</p>
+                    <label class="config-label">API 地址</label>
+                    <input type="text" id="settingApiUrl" class="setting-input"
+                           placeholder="https://api.deepseek.com/v1/chat/completions">
+                    <label class="config-label" style="margin-top:14px">API 密钥</label>
+                    <input type="password" id="settingApiKey" class="setting-input"
+                           placeholder="sk-xxxxxxxxxxxxxxxx">
+                    <p class="modal-hint">密钥仅保存在本地 settings.md 文件中，不会上传到任何第三方。</p>
+                    <div class="modal-actions">
+                        <button class="btn-secondary" onclick="verifySettings()">🔍 测试连接</button>
+                        <button class="btn-primary" onclick="saveSettings()">💾 保存设置</button>
+                    </div>
+                    <div class="modal-status" id="settingsStatus"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Status Warning -->
+        <div class="ai-warning" id="aiWarning" style="display:none">
+            ⚠️ AI评分未配置：案例分析/简答题将被自动跳过。
+            <a href="#" onclick="openSettings(); return false;">点击配置</a>
+        </div>
+    </div>
+
+    <script src="/js/app.js?v=20260727"></script>
+</body>
+</html>

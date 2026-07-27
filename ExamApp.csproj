@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="icon.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Copy 题库 directory on publish for portable distribution -->
+  <Target Name="CopyQuestionBank" AfterTargets="Publish">
+    <ItemGroup>
+      <BankFiles Include="题库\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BankFiles)"
+          DestinationFiles="@(BankFiles->'$(PublishDir)题库\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="Exists('题库')" />
+    <Message Text="题库已复制到发布目录: $(PublishDir)题库" Importance="high" Condition="Exists('题库')" />
+    <!-- Copy icon to wwwroot for browser favicon -->
+    <Copy SourceFiles="icon.ico" DestinationFolder="$(PublishDir)wwwroot\" SkipUnchangedFiles="true" Condition="Exists('icon.ico')" />
+  </Target>
+
+</Project>
