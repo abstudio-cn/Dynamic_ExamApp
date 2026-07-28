@@ -1,10 +1,10 @@
-namespace ExamApp.Models;
+﻿namespace ExamApp.Models;
 
 public class ExamRequest
 {
     public List<string> Categories { get; set; } = new(); // 支持多类别
     public string Category { get; set; } = ""; // 向后兼容单类别
-    public List<string> Types { get; set; } = new(); // single, multi, judge, case
+    public List<string> Types { get; set; } = new(); // single, multi, judge, case, fill
     public int Count { get; set; } = 20;
     public int? PerCategoryCount { get; set; } // 每类别抽题数，如设置则按比例分配
 }
@@ -62,6 +62,7 @@ public class CategoryInfo
     public int SingleChoiceCount { get; set; }
     public int MultiChoiceCount { get; set; }
     public int TrueFalseCount { get; set; }
+    public int FillInBlankCount { get; set; }
     public int CaseAnalysisCount { get; set; }
 }
 

@@ -13,11 +13,11 @@
 
 ## 快速启动
 
-发布启动，浏览器自动打开 `http://localhost:5000`
+双击 `启动答题系统.bat`，浏览器自动打开 `http://localhost:5000`
 
 或命令行启动：
 ```bash
-cd ".\模拟答题\ExamApp"
+cd "C:\Users\abstudio\Documents\模拟答题\ExamApp"
 dotnet run
 ```
 

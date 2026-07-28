@@ -315,6 +315,30 @@ function renderQuestionCard(q, qNumber) {
                       onchange="saveCaseAnswer('${q.id}', this.value)"
                       oninput="autoSaveCaseAnswer('${q.id}', this.value)">${escapeHtml(savedAnswer)}</textarea>
         `;
+    } else if (q.type === 'fill') {
+        const blankCount = q.blankCount || 1;
+        const savedAnswer = state.answers[q.id] || '';
+        const savedParts = savedAnswer ? savedAnswer.split('|').map(s => s.trim()) : new Array(blankCount).fill('');
+        
+        // Split content by ______ markers and interleave input fields
+        let contentHtml = q.contentHtml;
+        let inputsHtml = '';
+        for (let i = 0; i < blankCount; i++) {
+            const idx = contentHtml.indexOf('______');
+            if (idx >= 0) {
+                inputsHtml += contentHtml.substring(0, idx);
+                inputsHtml += `<span class="blank-input-wrapper"><input type="text" class="fill-blank-input"
+                       id="blank_${q.id}_${i}"
+                       placeholder="(${i + 1})"
+                       value="${escapeHtml(savedParts[i] || '')}"
+                       onchange="saveFillAnswer('${q.id}', collectFillAnswers('${q.id}', ${blankCount}))"
+                       oninput="autoSaveFillAnswer('${q.id}', collectFillAnswers('${q.id}', ${blankCount}))"></span>`;
+                contentHtml = contentHtml.substring(idx + 6); // skip '______'
+            }
+        }
+        inputsHtml += contentHtml;
+        
+        optionsHtml = `<div class="fill-answer-area">${inputsHtml}</div>`;
     } else if (q.type === 'judge') {
         // Defensive: only treat valid judge answers as selected
         const rawAnswer = state.answers[q.id];
@@ -423,6 +447,15 @@ function autoSaveFillAnswer(id, value) {
     fillAnswerTimer = setTimeout(() => {
         state.answers[id] = value;
     }, 500);
+}
+
+function collectFillAnswers(id, blankCount) {
+    const parts = [];
+    for (let i = 0; i < blankCount; i++) {
+        const el = document.getElementById("blank_" + id + "_" + i);
+        parts.push(el ? el.value.trim() : "");
+    }
+    return parts.join(" | ");
 }
 
 let caseAnswerTimer = null;

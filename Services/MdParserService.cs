@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 using ExamApp.Models;
 
@@ -147,6 +147,14 @@ public class MdParserService
             // Extract question content and options
             var (content, options) = ExtractContentAndOptions(block, type);
 
+            // Count blanks for FillInBlank questions
+            int blankCount = 0;
+            if (type == QuestionType.FillInBlank)
+            {
+                blankCount = Regex.Matches(content, "______").Count;
+                if (blankCount == 0) blankCount = 1; // fallback: at least 1 blank
+            }
+
             // Generate unique ID using file-level index (prevents collisions when numbers repeat)
             var id = $"{category}_{fileName}_{fileIndex}";
             // Sanitize ID for URL safety
@@ -165,7 +173,8 @@ public class MdParserService
                 Answer = answer,
                 Analysis = analysis,
                 AnalysisHtml = string.IsNullOrEmpty(analysis) ? "" : _renderer.RenderToHtml(analysis),
-                Difficulty = difficulty
+                Difficulty = difficulty,
+                BlankCount = blankCount
             };
         }
         catch
@@ -211,7 +220,7 @@ public class MdParserService
         if (string.IsNullOrWhiteSpace(ans))
         {
             var mlMatch = Regex.Match(block,
-                @"\*\*答案[：:]\s*\n?([\s\S]+?)(?=\n\s*\*\*难度|\n\s*\*\*解析|\n\s*\*\*依据|\n\s*\*\*来源|\n\s*---|\n\s*\*\*\d+\.\*\*|$)",
+                @"\*\*答案[：:]\s*\n?([\s\S]+?)(?=\n\s*\*\*难度|\n\s*\*\*解析|\n\s*\*\*依据|\n\s*\*\*来源|\n\s*---|\n\s*\*\*?\d+\.\*\*|\Z)",
                 RegexOptions.Singleline);
             if (mlMatch.Success)
                 ans = mlMatch.Groups[1].Value.Trim();
@@ -275,30 +284,30 @@ public class MdParserService
         {
             var ans = match.Groups[1].Value.Trim();
             if (!string.IsNullOrWhiteSpace(ans))
-                return NormalizeLineBreaks(ans);
+                return NormalizeLineBreaks(ans).TrimEnd('*').Trim();
         }
 
         // Format 2: **答案:** followed by multi-line answer (no closing ** before next field)
         // Matches from **答案: ... up to **难度, **解析, **依据, **来源, ---, or next question
         var caseMatch = Regex.Match(block,
-            @"\*\*答案[：:]\s*\n?([\s\S]+?)(?=\n\s*\*\*难度|\n\s*\*\*解析|\n\s*\*\*依据|\n\s*\*\*来源|\n\s*---|\n\s*\*\*\d+\.\*\*|$)",
+            @"\*\*答案[：:]\s*\n?([\s\S]+?)(?=\n\s*\*\*难度|\n\s*\*\*解析|\n\s*\*\*依据|\n\s*\*\*来源|\n\s*---|\n\s*\*\*?\d+\.\*\*|\Z)",
             RegexOptions.Singleline);
         if (caseMatch.Success)
         {
             var ans = caseMatch.Groups[1].Value.Trim();
             if (!string.IsNullOrWhiteSpace(ans))
-                return NormalizeLineBreaks(ans);
+                return NormalizeLineBreaks(ans).TrimEnd('*').Trim();
         }
 
         // Format 3: 【参考答案】... (self-created question bank, Chinese-bracket format)
         var refMatch = Regex.Match(block,
-            @"【参考答案】\s*([\s\S]+?)(?=\n\s*\*\*难度|\n\s*\*\*解析|\n\s*---|\n\s*\*\*\d+\.\*\*|$)",
+            @"【参考答案】\s*([\s\S]+?)(?=\n\s*\*\*难度|\n\s*\*\*解析|\n\s*---|\n\s*\*\*?\d+\.\*\*|$)",
             RegexOptions.Singleline);
         if (refMatch.Success)
         {
             var ans = refMatch.Groups[1].Value.Trim();
             if (!string.IsNullOrWhiteSpace(ans))
-                return NormalizeLineBreaks(ans);
+                return NormalizeLineBreaks(ans).TrimEnd('*').Trim();
         }
 
         return "";

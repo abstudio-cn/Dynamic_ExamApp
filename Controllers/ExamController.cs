@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using ExamApp.Models;
 using ExamApp.Services;
 
@@ -83,7 +83,7 @@ public class ExamController : ControllerBase
 
     /// <summary>
     /// Get random questions for an exam.
-    /// Query params: category, types (comma-separated: single,multi,judge,case), count
+    /// Query params: category, types (comma-separated: single,multi,judge,case,fill), count
     /// </summary>
     [HttpPost("questions")]
     public ActionResult<List<QuestionDto>> GetQuestions([FromBody] ExamRequest request)
@@ -107,6 +107,7 @@ public class ExamController : ControllerBase
                 QuestionType.MultiChoice => "multi",
                 QuestionType.TrueFalse => "judge",
                 QuestionType.CaseAnalysis => "case",
+                QuestionType.FillInBlank => "fill",
                 _ => "unknown"
             },
             ContentHtml = q.ContentHtml,
@@ -145,6 +146,7 @@ public class ExamController : ControllerBase
                     QuestionType.MultiChoice => "multi",
                     QuestionType.TrueFalse => "judge",
                     QuestionType.CaseAnalysis => "case",
+                    QuestionType.FillInBlank => "fill",
                     _ => "unknown"
                 },
                 ContentHtml = q.ContentHtml,
@@ -169,7 +171,7 @@ public class ExamController : ControllerBase
             }
             else
             {
-                // Objective questions: compare answers
+                // Objective & fill-in-blank questions: compare answers
                 gradedQ.IsCorrect = CompareAnswers(q.Answer, ans.Answer ?? "", q.Type);
                 if (gradedQ.IsCorrect) correctCount++;
             }
@@ -280,6 +282,25 @@ public class ExamController : ControllerBase
             return correctSorted == userSorted;
         }
 
+        if (type == QuestionType.FillInBlank)
+        {
+            // Multi-blank: split by | and compare each part
+            var correctParts = cleanCorrect.Split('|', StringSplitOptions.TrimEntries);
+            var userParts = cleanUser.Split('|', StringSplitOptions.TrimEntries);
+            
+            if (correctParts.Length != userParts.Length)
+                return false;
+            
+            for (int i = 0; i < correctParts.Length; i++)
+            {
+                var nc = correctParts[i].Replace("\u3000", " ").Replace("  ", " ").Trim();
+                var nu = userParts[i].Replace("\u3000", " ").Replace("  ", " ").Trim();
+                if (!string.Equals(nc, nu, StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+            return true;
+        }
+
         // For single choice, exact match (case-insensitive)
         return string.Equals(cleanCorrect, cleanUser, StringComparison.OrdinalIgnoreCase);
     }
@@ -299,7 +320,6 @@ public class ExamController : ControllerBase
         if (answer is "错" or "错误" or "×" or "✗" or "✘" or "☓" or "X" or "x" or "False" or "false" or "FALSE" or "F" or "f")
             return "FALSE";
 
-        // Single-letter A could be mapped if there are only 2 options
         return answer;
     }
 }
