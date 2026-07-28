@@ -17,8 +17,8 @@
 
 或命令行启动：
 ```bash
-cd "C:\Users\abstudio\Documents\模拟答题\ExamApp"
-dotnet run
+cd ".\模拟答题\ExamApp"
+ExamApp.exe
 ```
 
 ## 功能特性
