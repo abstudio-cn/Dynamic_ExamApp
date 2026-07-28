@@ -13,7 +13,7 @@
 
 ## 快速启动
 
-双击 `启动答题系统.bat`，浏览器自动打开 `http://localhost:5000`
+双击 `ExamApp.exe`，浏览器自动打开 `http://localhost:5000`
 
 或命令行启动：
 ```bash
